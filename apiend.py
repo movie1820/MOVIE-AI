@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
 import cv2
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
@@ -7,6 +8,21 @@ import tensorflow as tf
 import jwt
 import datetime
 from functools import wraps
+
+# MySQL 연결을 위한 Flask 앱 및 SQLAlchemy 객체 생성
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://username:password@localhost/db_name'  # 수정 필요
+db = SQLAlchemy(app)  # SQLAlchemy 객체 생성
+
+# User 모델 정의
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+
+    def __repr__(self):
+        return f'<User {self.username}>'
 
 def load_model_and_labels():
     # 모델 불러오기
@@ -24,15 +40,6 @@ def load_model_and_labels():
     return model, label_encoder
 
 def create_app():
-    app = Flask(__name__)
-    app.config['SECRET_KEY'] = 'your_secret_key'
-
-    # API 키를 저장할 딕셔너리
-    api_keys = {
-        "your_api_key": "client_id_1",
-        # 다른 API 키들 추가
-    }
-
     model, label_encoder = load_model_and_labels()
 
     def validate_api_key(func):
@@ -139,4 +146,5 @@ def preprocess_image(uploaded_file):
 
 if __name__ == '__main__':
     app = create_app()
+    db.create_all()  # 추가: 데이터베이스 생성
     app.run(debug=True)
